@@ -38,7 +38,7 @@ class Residual:
 
     def dy(self, predictions, internalVars, params):
         """
-        Partial derivative of the residual with respect to any calculated 
+        Partial derivative of the residual with respect to any calculated
         variables.
 
         Should return a dictionary of the form:
@@ -60,7 +60,7 @@ class Residual:
 
     def Dp(self, predictions, senspredictions, internalVars, internalVarsDerivs,
            params):
-	""" 
+	"""
         Total derivatives with respect to all parameters of the residual.
 
         Should return a list with the derivatives in the same order as params.
@@ -78,7 +78,7 @@ class Residual:
                 for yKey in dres_dy[calcKey].keys():
                     for xVal in dres_dy[calcKey][yKey].keys():
                         dres_dy_this = dres_dy[calcKey][yKey][xVal]
-                        # We default to 0 if parameter not in senspredictions. 
+                        # We default to 0 if parameter not in senspredictions.
                         # (It may not be involved in a given calculation.)
                         dy_dp_this = senspredictions[calcKey][yKey][xVal].get(pname, 0)
                         deriv += dres_dy_this * dy_dp_this
@@ -151,6 +151,120 @@ class PriorInLog(Residual):
     def dintVars(self, predictions, internalVars, params):
         return {}
 
+## This class was added by Uriel
+class PriorInLogCompound(Residual):
+    def __init__(self, key, pKey,pKey1,pKey2, logPVal, sigmaLogPVal):
+        Residual.__init__(self, key)
+        self.pKey = pKey
+        self.pKey1 = pKey1
+        self.pKey2 = pKey2
+        self.logPVal = logPVal
+        self.sigmaLogPVal = sigmaLogPVal
+
+    def GetValue(self, predictions, internalVars, params):
+        return (scipy.log(params.get(self.pKey1)+params.get(self.pKey2)) - self.logPVal) / self.sigmaLogPVal
+
+    def dp(self, predictions, internalVars, params):
+        return {self.pKey: 1./((params.get(self.pKey1) + params.get(self.pKey2))* self.sigmaLogPVal)}
+
+    def dy(self, predictions, internalVars, params):
+        return {}
+
+    def dintVars(self, predictions, internalVars, params):
+        return {}
+
+class PriorInLogRatio(Residual):
+    def __init__(self, key, pKey,pKey1,pKey2, logPVal, sigmaLogPVal):
+        Residual.__init__(self, key)
+        self.pKey = pKey
+        self.pKey1 = pKey1
+        self.pKey2 = pKey2
+        self.logPVal = logPVal
+        self.sigmaLogPVal = sigmaLogPVal
+
+    def GetValue(self, predictions, internalVars, params):
+        return (scipy.log(params.get(self.pKey1)+params.get(self.pKey2)) - self.logPVal) / self.sigmaLogPVal
+
+    def dp(self, predictions, internalVars, params):
+        return {self.pKey: 1./((params.get(self.pKey1) + params.get(self.pKey2))* self.sigmaLogPVal)}
+
+    def dy(self, predictions, internalVars, params):
+        return {}
+
+    def dintVars(self, predictions, internalVars, params):
+        return {}
+
+class PriorInLogSfCompound(Residual):
+    def __init__(self, key, pKey,pKey1,pKey2,pKey3, logPVal, sigmaLogPVal):
+        Residual.__init__(self, key)
+        self.pKey = pKey
+        self.pKey1 = pKey1
+        self.pKey2 = pKey2
+        self.pKey3 = pKey3
+        self.logPVal = logPVal
+        self.sigmaLogPVal = sigmaLogPVal
+
+    def GetValue(self, predictions, internalVars, params):
+        return (scipy.log((params.get(self.pKey1)+params.get(self.pKey2))*params.get(self.pKey3)) - self.logPVal) / self.sigmaLogPVal
+
+    def dp(self, predictions, internalVars, params):
+        return {self.pKey: 1./((params.get(self.pKey1) + params.get(self.pKey2))*params.get(self.pKey3)* self.sigmaLogPVal)}
+
+    def dy(self, predictions, internalVars, params):
+        return {}
+
+    def dintVars(self, predictions, internalVars, params):
+        return {}
+
+class PriorInLogCompound3(Residual):
+    def __init__(self, key, pKey,pKey1,pKey2,pKey3, logPVal, sigmaLogPVal):
+        Residual.__init__(self, key)
+        self.pKey = pKey
+        self.pKey1 = pKey1
+        self.pKey2 = pKey2
+        self.pKey3 = pKey3
+        self.logPVal = logPVal
+        self.sigmaLogPVal = sigmaLogPVal
+
+    def GetValue(self, predictions, internalVars, params):
+        return (scipy.log(params.get(self.pKey1)+params.get(self.pKey2)+params.get(self.pKey3)) - self.logPVal) / self.sigmaLogPVal
+
+    def dp(self, predictions, internalVars, params):
+        return {self.pKey: 1./((params.get(self.pKey1) + params.get(self.pKey2)+ params.get(self.pKey3))* self.sigmaLogPVal)}
+
+    def dy(self, predictions, internalVars, params):
+        return {}
+
+    def dintVars(self, predictions, internalVars, params):
+        return {}
+
+class PriorInLogSfCompund3(Residual):
+    #This class allows constrainin the scale consideing all the rates contribute the synthesis of
+    ## mRNA or protein
+    def __init__(self, key, pKey,pKey1,pKey2,pKey3, pKey4,logPVal, sigmaLogPVal):
+        Residual.__init__(self, key)
+        self.pKey = pKey
+        self.pKey1 = pKey1
+        self.pKey2 = pKey2
+        self.pKey3 = pKey3
+        self.pKey4 = pKey4
+        self.logPVal = logPVal
+        self.sigmaLogPVal = sigmaLogPVal
+
+    def GetValue(self, predictions, internalVars, params):
+        return (scipy.log((params.get(self.pKey1)+params.get(self.pKey2)+params.get(self.pKey3))*params.get(self.pKey4))- self.logPVal) / self.sigmaLogPVal
+
+    def dp(self, predictions, internalVars, params):
+        return {self.pKey: 1./((params.get(self.pKey1) + params.get(self.pKey2)+ params.get(self.pKey3))* params.get(self.pKey4)*self.sigmaLogPVal)}
+
+    def dy(self, predictions, internalVars, params):
+        return {}
+
+    def dintVars(self, predictions, internalVars, params):
+        return {}
+
+
+
 class Prior(Residual):
     def __init__(self, key, pKey, pVal, sigmaPVal):
         Residual.__init__(self, key)
@@ -196,22 +310,22 @@ class PeriodCheckResidual(Residual):
                or (self.xVal+2.0*self.yMeas)<times[index]: continue
             t1,t2,t3 = times[index-1:index+2]
             y1,y2,y3 = traj[t1], traj[t2], traj[t3]
-            if y1<y2 and y3<y2: 
+            if y1<y2 and y3<y2:
                 # Use a quadratic approximation to find the maximum
                 (a,b,c)=scipy.dot(scipy.linalg.inv([[t1**2,t1,1],
                                                     [t2**2,t2,1],
                                                     [t3**2,t3,1]]),[y1,y2,y3])
                 maximums.append(-b/2/a)
 
-        if len(maximums)<2: 
+        if len(maximums)<2:
             theoryVal = 2*self.yMeas
-        else: 
+        else:
             theoryVal = maximums[1] - maximums[0]
 
         return (theoryVal - self.yMeas)/self.ySigma
 
 
-## This is test to check if we need period fft 
+## This is test to check if we need period fft
 class PeriodCheckfftResidual(Residual):
     def __init__(self, key, calcKey, depVarKey, indVarValue,  depVarMeasurement,
                  depVarSigma):
@@ -240,16 +354,16 @@ class PeriodCheckfftResidual(Residual):
                or (self.xVal+2.0*self.yMeas)<times[index]: continue
             t1,t2,t3 = times[index-1:index+2]
             y1,y2,y3 = traj[t1], traj[t2], traj[t3]
-            if y1<y2 and y3<y2: 
+            if y1<y2 and y3<y2:
                 # Use a quadratic approximation to find the maximum
                 (a,b,c)=scipy.dot(scipy.linalg.inv([[t1**2,t1,1],
                                                     [t2**2,t2,1],
                                                     [t3**2,t3,1]]),[y1,y2,y3])
                 maximums.append(-b/2/a)
 
-        if len(maximums)<2: 
+        if len(maximums)<2:
             theoryVal = 2*self.yMeas
-        else: 
+        else:
             theoryVal = maximums[1] - maximums[0]
 
         return (theoryVal - self.yMeas)/self.ySigma
@@ -283,13 +397,13 @@ class AmplitudeCheckResidual(Residual):
         times.sort()
         startIndex,endStartIndex = times.index(self.xVal), times.index(self.xVal+self.period)
         testIndex,endTestIndex = times.index(self.xTestVal), times.index(self.xTestVal+self.period)
-        
+
         x,y=[],[]
         for t in times[startIndex:endStartIndex+1]:
             x.append(t)
             y.append(scale_factor*predictions[self.cKey][self.yKey][t])
         measVal = scipy.integrate.simps(y,x)
-            
+
         x,y=[],[]
         for t in times[testIndex:endTestIndex+1]:
             x.append(t)
@@ -355,7 +469,7 @@ class ScaledExtremum(Residual):
 
     def Dp(self, predictions, senspredictions, internalVars, internalVarsDerivs,
            params):
-	""" 
+	"""
         Total derivatives with respect to all parameters of the residual.
 
         Should return a list with the derivatives in the same order as params.
