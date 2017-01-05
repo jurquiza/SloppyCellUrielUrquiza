@@ -69,7 +69,7 @@ def bootstrap(data,num_iterates=100):
         sampled_data.append([random.choice(data) for ii in range(len_data)])
 
     return sampled_data
-        
+
 def enable_debugging_msgs(filename=None):
     """
     Enable output of debugging messages.
@@ -104,13 +104,13 @@ def disable_debugging_msgs():
     logging.basicConfig()
 
 def disable_warnings():
-    scipy.seterr(over='ignore', divide='ignore', invalid='ignore', 
+    scipy.seterr(over='ignore', divide='ignore', invalid='ignore',
                  under='ignore')
     logging.root.setLevel(logging.CRITICAL)
 
 def enable_warnings():
     logging.root.setLevel(logging.WARNING)
-    scipy.seterr(over='print', divide='print', invalid='print', 
+    scipy.seterr(over='print', divide='print', invalid='print',
                  under='ignore')
 
 class SloppyCellException(Exception):
@@ -134,7 +134,7 @@ Redirector = Redirector_mod.Redirector
 
 def combine_hessians(hesses, key_sets):
     """
-    Combine a number of hessians (with possibly different dimensions and 
+    Combine a number of hessians (with possibly different dimensions and
     orderings) into a single hessian.
 
     hesses    A sequence of hessians to combine
@@ -161,3 +161,39 @@ def combine_hessians(hesses, key_sets):
                 tot_hess[tot_ii, tot_jj] += hess[ii, jj]
 
     return tot_hess, tot_keys
+
+
+##Functions Introduced by Uriel Urquiza Millar Lab
+
+def res_var(res_dict, network, variable):
+    res_sum = 0
+    for res in res_dict.keys():
+        if res[1] == network and res[2] == variable:
+            res_sum+=res_dict[res]**2
+    return res_sum/2
+
+def deconv_cost(network_data,res_dict):
+    deconvoluted_cost = ''
+    total_cost=0
+    temp = 0
+    deconvoluted_cost+='Network\t'+'Variable\t'+'Chi2\n'
+    for n in network_data.keys():
+        deconvoluted_cost+=n+'\n'
+        for v in network_data[n].keys():
+            temp = res_var(res_dict,n,v)
+            deconvoluted_cost+= '\t'+v+'\t'+str(temp)+'\n'
+            total_cost+=temp
+    return deconvoluted_cost + 'Total Chi2\t\t' + str(total_cost)+'\n'
+
+def deconv_cost_to_file(network_data,res_dict, path):
+    '''
+    network_data    data used in the model fitting
+    res_dict        Dictionary containing the residuals
+    path            Path where the result is going to be saved
+
+    '''
+
+    summary = open(path, 'w')
+    summary.write(deconv_cost(network_data,res_dict))
+    summary.close()
+    print "File writen to ", path
