@@ -166,16 +166,18 @@ def combine_hessians(hesses, key_sets):
 ##Functions Introduced by Uriel Urquiza Millar Lab
 
 def res_var(res_dict, network, variable):
+
     res_sum = 0
     for res in res_dict.keys():
         if res[1] == network and res[2] == variable:
             res_sum+=res_dict[res]**2
     return res_sum/2
 
-def deconv_cost(network_data,res_dict):
+def deconv_cost(model, network_data):
     deconvoluted_cost = ''
     total_cost=0
     temp = 0
+    res_dict = model.res_dict(m.get_params())
     deconvoluted_cost+='Network\t'+'Variable\t'+'Chi2\n'
     for n in network_data.keys():
         deconvoluted_cost+=n+'\n'
@@ -185,15 +187,8 @@ def deconv_cost(network_data,res_dict):
             total_cost+=temp
     return deconvoluted_cost + 'Total Chi2\t\t' + str(total_cost)+'\n'
 
-def deconv_cost_to_file(network_data,res_dict, path):
-    '''
-    network_data    data used in the model fitting
-    res_dict        Dictionary containing the residuals
-    path            Path where the result is going to be saved
-
-    '''
-
+def deconv_cost_to_file(model, network_data, path):
     summary = open(path, 'w')
-    summary.write(deconv_cost(network_data,res_dict))
+    summary.write(deconv_cost(model, network_data))
     summary.close()
     print "File writen to ", path
