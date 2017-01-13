@@ -5,6 +5,8 @@ import sets
 from email.MIMEText import MIMEText
 
 import scipy
+import numpy as np
+from lmfit import minimize, Parameters
 
 from scipy import linspace, logspace
 
@@ -164,6 +166,35 @@ def combine_hessians(hesses, key_sets):
 
 
 ##Functions Introduced by Uriel Urquiza Millar Lab
+
+def SloppyCellData_to_numpy(data, network, chemical):
+    """
+    Function that retunrs data formated for sloppy cell into numpy arrays for using it within python
+    data   Sloppycell dict containing data
+    network Name of the data for a particular netowork
+    chemical Name of state variables
+
+    returns
+    x      time point
+    y      chemical
+    eps    uncertainty
+
+    """
+
+    x =[]
+    y = []
+    eps=[]
+
+    for i in sorted(data[network][chemical].keys()):
+        x.append(i)
+        y.append(data[network][chemical][i][0])
+        eps.append(data[network][chemical][i][1])
+
+    x = np.array(x)
+    y = np.array(y)
+    eps= np.array(eps)
+
+    return x, y , eps
 
 def res_var(res_dict, network, variable):
 
