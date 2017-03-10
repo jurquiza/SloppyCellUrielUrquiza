@@ -34,7 +34,7 @@ class ExperimentCollection(dict):
         Adds the experiments in the list to the collection
         """
         if expt.GetName() in self:
-            raise ValueError("Experiment already has name %s" 
+            raise ValueError("Experiment already has name %s"
                              % str(expt.GetName()))
 
         self[expt.GetName()] = expt
@@ -43,9 +43,9 @@ class ExperimentCollection(dict):
         """
         GetIndVarsByCalc() -> dictionary
 
-        Returns a dictionary of all the dependent and independent variables for 
+        Returns a dictionary of all the dependent and independent variables for
         all the calculations required to compare with the data in all the
-        experiments. The dictionary is of the form: 
+        experiments. The dictionary is of the form:
          dictionary(calculation name) -> ordered list of unique independent
                                          variables
         """
@@ -71,10 +71,21 @@ class ExperimentCollection(dict):
                     varsByCalc[calc].setdefault(depVar, sets.Set())
                 varsByCalc[calc][depVar].union_update([start, start+2.0*period])
 
+            for dampening in expt.GetDampeningChecks():
+                calc, depVar = dampening['calcKey'], dampening['depVarKey']
+                start, period = dampening['startTime'], dampening['period']
+
+                if calc not in varsByCalc.keys():
+                    varsByCalc[calc].setdefault(calc, {})
+                if depVar not in varsByCalc[calc]:
+                    varsByCalc[calc].setdefault(depVar, sets.Set())
+                varsByCalc[calc][depVar].union_update([start, start+2.0*period])
+
+
             for amplitude in expt.GetAmplitudeChecks():
                 calc, depVar = amplitude['calcKey'], amplitude['depVarKey']
-                start, test, period = (amplitude['startTime'], 
-                                       amplitude['testTime'], 
+                start, test, period = (amplitude['startTime'],
+                                       amplitude['testTime'],
                                        amplitude['period'])
                 if calc not in varsByCalc.keys():
                     varsByCalc[calc].setdefault(calc, {})
@@ -93,10 +104,10 @@ class ExperimentCollection(dict):
                 varsByCalc.setdefault(ds['calcKey'], {})
                 if ds['type'] == 'max':
                     called = ds['var'] + '_maximum'
-                elif ds['type'] == 'min': 
+                elif ds['type'] == 'min':
                     called = ds['var'] + '_minimum'
                 varsByCalc[calc][called] = (ds['minTime'], ds['maxTime'])
-                
+
         # But I convert the sets back to sorted lists before returning
         for calc in varsByCalc:
             for depVar in varsByCalc[calc]:
@@ -120,7 +131,7 @@ class ExperimentCollection(dict):
         data = {}
         for exptName, expt in self.items():
             data[exptName] = expt.GetData()
-        
+
         return data
 
 class Experiment:
@@ -132,6 +143,7 @@ class Experiment:
         self.set_shared_sf(shared_sf)
         self.periodChecks=[]
         self.amplitudeChecks=[]
+        self.dampeningChecks=[]  ## Added by Uriel Urquiza
         self.integral_data=[]
         self.sf_priors = {}
         self.scaled_extrema_data = []
@@ -164,7 +176,7 @@ class Experiment:
         for dataset in self.scaled_extrema_data:
             measuredVars.add(dataset['var'])
 
-        sf_groups = [self._hashable_group(group) for group 
+        sf_groups = [self._hashable_group(group) for group
                      in self.get_shared_sf()]
         # Flatten out the list of shared scale factors so we can also get
         #  the unshared ones...
@@ -254,7 +266,7 @@ class Experiment:
             prev_err = scipy.seterr(over='ignore')
             int_args = (theoryDotTheory, theoryDotData, mulB, siglB, T, B_best,
                         lB_best)
-            ans, temp = scipy.integrate.quad(integrand, -scipy.inf, scipy.inf, 
+            ans, temp = scipy.integrate.quad(integrand, -scipy.inf, scipy.inf,
                                              args = int_args, limit=1000)
             scipy.seterr(**prev_err)
             entropy = scipy.log(ans)
@@ -262,7 +274,7 @@ class Experiment:
             raise ValueError('Unrecognized prior type: %s.' % prior_type)
 
         return entropy
-        
+
     def SetName(self, name):
         self.name = name
 
@@ -305,11 +317,26 @@ class Experiment:
         startTime and two periods after the startTime.
         """
         self.periodChecks.append({'calcKey':calcKey, 'depVarKey':chemical,
-                                  'period': period, 'sigma': sigma, 
+                                  'period': period, 'sigma': sigma,
                                   'startTime': startTime})
 
     def GetPeriodChecks(self):
         return self.periodChecks
+
+        ## Added by Uriel Urquiza for constraning dampening in clock mutants example cca1/lhy
+    def AddDampeningCheck(self, calcKey, chemical, period, dampeningCoeficient, sigma, startTime=0.0):
+        """
+        Constrain the dampening of the oscillations to a value (dampeningCoeficient)
+        with the error (sigma). The dampning coeficient is found by using the period
+        and the log between the first to maxima found in start time and two period after
+        start time.
+        """
+        self.dampeningChecks.append({'calcKey':calcKey, 'depVarKey':chemical,'period':period,
+                                  'dampeningCoeficient': dampeningCoeficient, 'sigma': sigma,
+                                  'startTime': startTime})
+
+    def GetDampeningChecks(self):
+        return self.dampeningChecks
 
     def AddAmplitudeCheck(self, calcKey, chemical, startTime, testTime, period,
                           sigma):
@@ -320,7 +347,7 @@ class Experiment:
         begin the integration for the period-long each.
         """
         self.amplitudeChecks.append({'calcKey': calcKey, 'depVarKey': chemical,
-                                     'startTime': startTime, 
+                                     'startTime': startTime,
                                      'testTime': testTime,
                                      'period': period, 'sigma': sigma})
 
@@ -330,7 +357,7 @@ class Experiment:
     def GetIntegralDataSets(self):
         return self.integral_data
 
-    def add_integral_data(self, calcKey, traj, uncert_traj, vars, 
+    def add_integral_data(self, calcKey, traj, uncert_traj, vars,
                           interval=None):
         """
         Add an integral data set to the experiment.
@@ -349,13 +376,13 @@ class Experiment:
                                    'uncert_traj': uncert_traj, 'vars': vars,
                                    'interval': interval})
 
-    def add_scaled_max(self, calcKey, var, maxval, sigma, 
+    def add_scaled_max(self, calcKey, var, maxval, sigma,
                            minTime=None, maxTime=None):
         self.scaled_extrema_data.append({'calcKey': calcKey, 'var':var,
                                          'val':maxval, 'sigma':sigma,
                                          'minTime': minTime, 'maxTime':maxTime,
                                          'type':'max'})
-    def add_scaled_min(self, calcKey, var, minval, sigma, 
+    def add_scaled_min(self, calcKey, var, minval, sigma,
                            minTime=None, maxTime=None):
         self.scaled_extrema_data.append({'calcKey': calcKey, 'var':var,
                                          'val':minval, 'sigma':sigma,
@@ -371,7 +398,7 @@ class CalculationCollection(KeyedList):
     Calculation its appropriate parameters.
 
     Individual calculations can be accessed via dictionary-type indexing.
-    
+
     XXX: Note that the parameter shuffling has not been extensively tested.
     """
 
@@ -396,7 +423,7 @@ class CalculationCollection(KeyedList):
         parameters to the parameterSet
         """
         if calc.GetName() in self:
-            raise ValueError("Calculation already has name %s" 
+            raise ValueError("Calculation already has name %s"
                              % str(calc.GetName()))
 
         self.set(calc.GetName(), calc )
@@ -409,7 +436,7 @@ class CalculationCollection(KeyedList):
 
         varsByCalc is a dictionary of the form:
             dict[calc name][dep var] = ind var
-        
+
         The return dictionary is of the form:
             dictionary[calc name][dep var][ind var] = result
         """
@@ -442,7 +469,7 @@ class CalculationCollection(KeyedList):
             #  *always* wait for replies from the workers, even if the master
             #  encounters an exception in his evaluation.
             try:
-                results[calc] = self.get(calc).calculate(varsByCalc[calc], 
+                results[calc] = self.get(calc).calculate(varsByCalc[calc],
                                                          self.params)
             finally:
                 # Collect results from the workers
@@ -452,7 +479,7 @@ class CalculationCollection(KeyedList):
                 # If the master encounts an exception, we'll break out of the
                 #  function ***here***
 
-            # Check the results we received. If any is a SloppyCellException, 
+            # Check the results we received. If any is a SloppyCellException,
             #  reraise it.
             for val in results.values():
                 if isinstance(val, Utility.SloppyCellException):
@@ -462,18 +489,18 @@ class CalculationCollection(KeyedList):
 
     def CalculateSensitivity(self, varsByCalc, params = None):
         """
-        Calculate sensitivities for model predictions of everything in 
+        Calculate sensitivities for model predictions of everything in
         varsByCalc.
 
         varsByCalc is a dictionary of the form:
             dict[calc name][dep var] = ind var
-        
+
         The return dictionary is of the form:
             dictionary[calc name][dep var][ind var][param] = result
         """
         if params is not None :
             self.params.update(params)
-		
+
         calcSensVals, calcVals = {}, {}
         for (calcName, vars) in varsByCalc.items():
             calc = self.get(calcName)

@@ -324,6 +324,56 @@ class PeriodCheckResidual(Residual):
 
         return (theoryVal - self.yMeas)/self.ySigma
 
+##Dampening Check Uriel
+
+class DampeningCheckResidual(Residual):
+    def __init__(self, key, calcKey, depVarKey, indVarValue,  depVarMeasurement,dampeningCoeficient,
+                 depVarSigma):
+        Residual.__init__(self, key)
+        self.cKey = calcKey
+        self.yKey = depVarKey
+        self.xVal = indVarValue
+        self.yMeas = depVarMeasurement
+        self.dCoeff = dampeningCoeficient
+        self.ySigma = depVarSigma
+
+    def GetRequiredVarsByCalc(self):
+        # Need the points between xVal and xVal + 2*periods
+        return {self.cKey: {self.yKey: [self.xVal, self.xVal+2.0*self.yMeas]}}
+
+    def GetValue(self, predictions, internalVars, params):
+        # Find the period
+        traj = predictions[self.cKey][self.yKey]
+        times = traj.keys()
+        times.sort()
+
+        maximums=[]
+        for index in range(1,len(times)-1):
+            if times[index]<self.xVal\
+               or (self.xVal+2.0*self.yMeas)<times[index]: continue
+            t1,t2,t3 = times[index-1:index+2]
+            y1,y2,y3 = traj[t1], traj[t2], traj[t3]
+            if y1<y2 and y3<y2:
+                # Use a quadratic approximation to find the maximum
+                #y=a*x^2+b*x+c
+                #taking the derivative and y'= 0 and solving for x
+                #substituting then back into the quadratic gives the max value at y(x)
+                (a,b,c)=scipy.dot(scipy.linalg.inv([[t1**2,t1,1],
+                                                    [t2**2,t2,1],
+                                                    [t3**2,t3,1]]),[y1,y2,y3])
+
+                maximums.append(c)
+
+        if len(maximums)<2:
+            theoryVal_dampening = 0.76
+        else:
+            delta_dampening = numpy.log(maximums[0]/maximums[1])
+            theoryVal_dampening = delta_dampening/numpy.sqrt((2*numpy.pi)**2+delta_dampening**2)
+            #print delta_dampening
+            #print theoryVal_dampening
+            #print theoryVal_dampening - self.dCoeff
+        return (theoryVal_dampening - self.dCoeff)/self.ySigma
+
 
 ## This is test to check if we need period fft
 class PeriodCheckfftResidual(Residual):
