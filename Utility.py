@@ -6,7 +6,7 @@ from email.MIMEText import MIMEText
 
 import scipy
 import numpy as np
-from lmfit import minimize, Parameters
+
 
 from scipy import linspace, logspace
 
@@ -204,11 +204,19 @@ def res_var(res_dict, network, variable):
             res_sum+=res_dict[res]**2
     return res_sum/2
 
-def deconv_cost(model, network_data):
+def per_res(res_dict):
+    amp_period_res ={}
+    for res in res_dict.keys():
+        if 'period' in res:
+            amp_period_res[res]= res_dict[res]**2/2
+    return amp_period_res
+
+
+def deconv_cost(model, params ,network_data, networks_per_amp_constrais=False):
     deconvoluted_cost = ''
     total_cost=0
     temp = 0
-    res_dict = model.res_dict(m.get_params())
+    res_dict = model.res_dict(params)
     deconvoluted_cost+='Network\t'+'Variable\t'+'Chi2\n'
     for n in network_data.keys():
         deconvoluted_cost+=n+'\n'
@@ -216,10 +224,20 @@ def deconv_cost(model, network_data):
             temp = res_var(res_dict,n,v)
             deconvoluted_cost+= '\t'+v+'\t'+str(temp)+'\n'
             total_cost+=temp
+    if networks_per_amp_constrais:
+        deconvoluted_cost+='period\n'
+        for g in networks_per_amp_constrais:
+            for k in per_res(res_dict).keys():
+                if g in k and 'per' in k:
+                    deconvoluted_cost+='\t'+g+'\t'
+                    deconvoluted_cost+=str(networks_per_amp_constrais[g][1]**2*per_res(res_dict)[k]+networks_per_amp_constrais[g][0])
+                    deconvoluted_cost+='\t'+str(per_res(res_dict)[k])+'\t'
+                    total_cost+=per_res(res_dict)[k]
+                    deconvoluted_cost+='\n'
     return deconvoluted_cost + 'Total Chi2\t\t' + str(total_cost)+'\n'
 
-def deconv_cost_to_file(model, network_data, path):
+def deconv_cost_to_file(model,params, network_data, networks_per_amp_constrais=False, path='./test.kk'):
     summary = open(path, 'w')
-    summary.write(deconv_cost(model, network_data))
+    summary.write(deconv_cost(model,params,network_data, networks_per_amp_constrais))
     summary.close()
     print "File writen to ", path
