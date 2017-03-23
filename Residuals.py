@@ -153,9 +153,9 @@ class PriorInLog(Residual):
 
 ## This class was added by Uriel
 class PriorInLogCompound(Residual):
-    def __init__(self, key, pKey,pKey1,pKey2, logPVal, sigmaLogPVal):
+    def __init__(self, key,pKey1,pKey2, logPVal, sigmaLogPVal):
         Residual.__init__(self, key)
-        self.pKey = pKey
+        #self.pKey = pKey ## this has to be the compund parameter
         self.pKey1 = pKey1
         self.pKey2 = pKey2
         self.logPVal = logPVal
@@ -165,7 +165,7 @@ class PriorInLogCompound(Residual):
         return (scipy.log(params.get(self.pKey1)+params.get(self.pKey2)) - self.logPVal) / self.sigmaLogPVal
 
     def dp(self, predictions, internalVars, params):
-        return {self.pKey: 1./((params.get(self.pKey1) + params.get(self.pKey2))* self.sigmaLogPVal)}
+        return {self.pKey1+'_'+self.pKey2: 1./((params.get(self.pKey1) + params.get(self.pKey2))* self.sigmaLogPVal)}
 
     def dy(self, predictions, internalVars, params):
         return {}
@@ -176,7 +176,7 @@ class PriorInLogCompound(Residual):
 class PriorInLogRatio(Residual):
     def __init__(self, key, pKey,pKey1,pKey2, logPVal, sigmaLogPVal):
         Residual.__init__(self, key)
-        self.pKey = pKey
+        self.pKey = pKey ## this has to be the compund parameter
         self.pKey1 = pKey1
         self.pKey2 = pKey2
         self.logPVal = logPVal
@@ -194,10 +194,30 @@ class PriorInLogRatio(Residual):
     def dintVars(self, predictions, internalVars, params):
         return {}
 
-class PriorInLogSfCompound(Residual):
-    def __init__(self, key, pKey,pKey1,pKey2,pKey3, logPVal, sigmaLogPVal):
+class PriorInLogSf(Residual):
+    def __init__(self, key,pKey1,pKey2, logPVal, sigmaLogPVal):
         Residual.__init__(self, key)
-        self.pKey = pKey
+        self.pKey1 = pKey1
+        self.pKey2 = pKey2
+        self.logPVal = logPVal
+        self.sigmaLogPVal = sigmaLogPVal
+
+    def GetValue(self, predictions, internalVars, params):
+        return (scipy.log((self.pKey1)*params.get(self.pKey2)) - self.logPVal) / self.sigmaLogPVal
+
+    def dp(self, predictions, internalVars, params):
+        return {self.pKey2: (self.pKey1)/(params.get(self.pKey2)*self.sigmaLogPVal)}
+
+    def dy(self, predictions, internalVars, params):
+        return {}
+
+    def dintVars(self, predictions, internalVars, params):
+        return {}
+
+
+class PriorInLogSfCompound(Residual):
+    def __init__(self, key,pKey1,pKey2,pKey3, logPVal, sigmaLogPVal):
+        Residual.__init__(self, key)
         self.pKey1 = pKey1
         self.pKey2 = pKey2
         self.pKey3 = pKey3
@@ -205,16 +225,39 @@ class PriorInLogSfCompound(Residual):
         self.sigmaLogPVal = sigmaLogPVal
 
     def GetValue(self, predictions, internalVars, params):
-        return (scipy.log((params.get(self.pKey1)+params.get(self.pKey2))*params.get(self.pKey3)) - self.logPVal) / self.sigmaLogPVal
+        return (scipy.log((self.pKey1+self.pKey2)*params.get(self.pKey3)) - self.logPVal) / self.sigmaLogPVal
 
     def dp(self, predictions, internalVars, params):
-        return {self.pKey: 1./((params.get(self.pKey1) + params.get(self.pKey2))*params.get(self.pKey3)* self.sigmaLogPVal)}
+        return {self.pKey3: (self.pKey1+self.pKey2)/(params.get(self.pKey3)*self.sigmaLogPVal)}
 
     def dy(self, predictions, internalVars, params):
         return {}
 
     def dintVars(self, predictions, internalVars, params):
         return {}
+
+class PriorInLogSfCompound3(Residual):
+    def __init__(self, key,pKey1,pKey2,pKey3,pKey4, logPVal, sigmaLogPVal):
+        Residual.__init__(self, key)
+        self.pKey1 = pKey1
+        self.pKey2 = pKey2
+        self.pKey3 = pKey3
+        self.pKey4 = pKey4
+        self.logPVal = logPVal
+        self.sigmaLogPVal = sigmaLogPVal
+
+    def GetValue(self, predictions, internalVars, params):
+        return (scipy.log((self.pKey1+self.pKey2+self.pKey3)*params.get(self.pKey4)) - self.logPVal) / self.sigmaLogPVal
+
+    def dp(self, predictions, internalVars, params):
+        return {self.pKey4: (self.pKey1+self.pKey2+self.pKey3)/(params.get(self.pKey4)*self.sigmaLogPVal)}
+
+    def dy(self, predictions, internalVars, params):
+        return {}
+
+    def dintVars(self, predictions, internalVars, params):
+        return {}
+
 
 class PriorInLogCompound3(Residual):
     def __init__(self, key, pKey,pKey1,pKey2,pKey3, logPVal, sigmaLogPVal):
