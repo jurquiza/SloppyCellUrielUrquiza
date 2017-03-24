@@ -155,7 +155,6 @@ class PriorInLog(Residual):
 class PriorInLogCompound(Residual):
     def __init__(self, key,pKey1,pKey2, logPVal, sigmaLogPVal):
         Residual.__init__(self, key)
-        #self.pKey = pKey ## this has to be the compund parameter
         self.pKey1 = pKey1
         self.pKey2 = pKey2
         self.logPVal = logPVal
@@ -164,8 +163,8 @@ class PriorInLogCompound(Residual):
     def GetValue(self, predictions, internalVars, params):
         return (scipy.log(params.get(self.pKey1)+params.get(self.pKey2)) - self.logPVal) / self.sigmaLogPVal
 
-    def dp(self, predictions, internalVars, params):
-        return {self.pKey1+'_'+self.pKey2: 1./((params.get(self.pKey1) + params.get(self.pKey2))* self.sigmaLogPVal)}
+    def dp(self, predictions, internalVars, params): ##I return the pKey1 becuase is the partial derivative with respect to parameter 1
+        return {self.pKey1: 1./((params.get(self.pKey1) + params.get(self.pKey2))* self.sigmaLogPVal)}
 
     def dy(self, predictions, internalVars, params):
         return {}
@@ -174,19 +173,18 @@ class PriorInLogCompound(Residual):
         return {}
 
 class PriorInLogRatio(Residual):
-    def __init__(self, key, pKey,pKey1,pKey2, logPVal, sigmaLogPVal):
+    def __init__(self, key,pKey1,pKey2, logPVal, sigmaLogPVal):
         Residual.__init__(self, key)
-        self.pKey = pKey ## this has to be the compund parameter
         self.pKey1 = pKey1
         self.pKey2 = pKey2
         self.logPVal = logPVal
         self.sigmaLogPVal = sigmaLogPVal
 
     def GetValue(self, predictions, internalVars, params):
-        return (scipy.log(params.get(self.pKey1)+params.get(self.pKey2)) - self.logPVal) / self.sigmaLogPVal
+        return (scipy.log(params.get(self.pKey1)/params.get(self.pKey2)) - self.logPVal) / self.sigmaLogPVal
 
     def dp(self, predictions, internalVars, params):
-        return {self.pKey: 1./((params.get(self.pKey1) + params.get(self.pKey2))* self.sigmaLogPVal)}
+        return {self.pKey1: (1./(params.get(self.pKey1) + 1./params.get(self.pKey2))* self.sigmaLogPVal)}
 
     def dy(self, predictions, internalVars, params):
         return {}
