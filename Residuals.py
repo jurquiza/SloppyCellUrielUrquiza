@@ -258,9 +258,8 @@ class PriorInLogSfCompound3(Residual):
 
 
 class PriorInLogCompound3(Residual):
-    def __init__(self, key, pKey,pKey1,pKey2,pKey3, logPVal, sigmaLogPVal):
+    def __init__(self, key,pKey1,pKey2,pKey3, logPVal, sigmaLogPVal):
         Residual.__init__(self, key)
-        self.pKey = pKey
         self.pKey1 = pKey1
         self.pKey2 = pKey2
         self.pKey3 = pKey3
@@ -271,7 +270,7 @@ class PriorInLogCompound3(Residual):
         return (scipy.log(params.get(self.pKey1)+params.get(self.pKey2)+params.get(self.pKey3)) - self.logPVal) / self.sigmaLogPVal
 
     def dp(self, predictions, internalVars, params):
-        return {self.pKey: 1./((params.get(self.pKey1) + params.get(self.pKey2)+ params.get(self.pKey3))* self.sigmaLogPVal)}
+        return {self.pKey1: 1./((params.get(self.pKey1) + params.get(self.pKey2)+ params.get(self.pKey3))* self.sigmaLogPVal)}
 
     def dy(self, predictions, internalVars, params):
         return {}
